@@ -1,0 +1,417 @@
+{% extends "base.html" %}
+
+{% block title %}Vote - Smart Voting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4 h-100">
+  <!-- Centered Row -->
+  <div id="faceVerification" class="row justify-content-center align-items-center m-0">
+    <div class="col-12 col-sm-7 col-md-6 col-lg-5 col-xl-4 p-0">
+      <div class="blur p-4 rounded-4 shadow-sm">
+        <h3 class="text-center mb-4 fw-bold">Face Verification</h3>
+        <div id="videoSection" class="text-center">
+          <form id="faceVerificationForm" hidden></form>
+          <p class="text-center">Please allow camera access to verify your identity.</p>
+          <video id="video" width="100%" height="auto" autoplay></video>
+          <canvas id="canvas" style="display: none;"></canvas>
+          <button type="button" class="btn btn-lg btn-primary w-100 mt-3" id="startVerification">Capture</button>
+        </div>
+        <div class="d-none" id="capturedImageSection">
+          <button type="button" class="btn btn-primary w-100 mt-2" id="retakeCapture">Retake Capture</button>
+          <!-- Optional: Show captured image -->
+          <div class="mt-3 text-center">
+            <img id="capturedImage" alt="Captured Face" class="img-fluid">
+          </div>
+          <button id="verifyButton" type="submit" class="btn btn-lg btn-success w-100 mt-2">Verify</button>
+        </div>
+
+        <div class="d-none" id="cameraUnavailableSection">
+          <div class="alert alert-warning text-center mt-3" role="alert">
+            Camera is not available or not permitted on this connection.
+            <strong>You can still vote with permission from admin via a secure setup.</strong>
+          </div>
+          <button type="button" class="btn btn-outline-secondary w-100" id="skipFaceVerification">
+            Continue to Voting (No Face Check)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="votingSection" class="row d-flex justify-content-center align-items-center mb-4 d-none">
+    <div class="col col-12 col-sm-10 col-md-8 col-lg-7 col-xl-5 p-0 ">
+      <div class="blur p-4 rounded-4 shadow-sm w-100">
+        <h3 class="text-center mb-4 fw-bold">Vote Now</h3>
+        <div class="row row-cols-2 row-cols-sm-2 row-cols-md-3 row-cols-lg-3 row-cols-xl-3 row-cols-xxl-4 g-4">
+          {% for candidate in candidates %}
+          <div class="col">
+            <div class="card h-100 d-flex flex-column">
+              <div class="card-header text-center d-inline-block px-3 py-2" style="min-width: max-content;">
+                <h5 class="card-title m-0">{{ candidate._id }}</h5>
+              </div>
+              <div class="d-flex align-items-center justify-content-center flex-grow-1 p-2">
+                <img src="{{ url_for('api.logo', file=candidate.logo) }}" alt="{{ candidate._id }}" class="img-fluid"
+                  style="max-height: 100px;">
+              </div>
+              <div class="card-footer d-flex align-items-center justify-content-end p-0">
+                <button class="btn w-100 h-100 d-flex align-items-center justify-content-center"
+                  style="border-radius: 0; background-color: rgba(68, 234, 68, 0.606);"
+                  onclick="vote('{{ candidate._id }}')">
+                  <i class="bi bi-check-circle-fill me-2"></i>Vote
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+
+
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+
+  {% block scripts %}
+
+
+
+  {% if voting_status == "Not Started" %}
+  <script>
+    Swal.fire({
+      imageUrl: '{{ url_for("static", filename="favicon.ico") }}',
+      imageWidth: 64,
+      imageHeight: 64,
+      title: 'Voting Not Started',
+      html: 'Voting has not yet started. Please check back later.',
+      allowOutsideClick: false,
+      timer: 3000,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    }).then(() => {
+      window.location.href = '{{ url_for("main.home") }}';
+    });
+  </script>
+  {% elif voting_status == "Stopped" %}
+  <script>
+    Swal.fire({
+      imageUrl: '{{ url_for("static", filename="favicon.ico") }}',
+      imageWidth: 64,
+      imageHeight: 64,
+      title: 'Voting Stopped',
+      html: 'Voting has been stopped. Redirecting to results page.',
+      allowOutsideClick: false,
+      timer: 3000,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    }).then(() => {
+      window.location.href = '{{ url_for("main.results") }}';
+    });
+  </script>
+  {% elif user_status %}
+  <script>
+    Swal.fire({
+      imageUrl: '{{ url_for("static", filename="favicon.ico") }}',
+      imageWidth: 64,
+      imageHeight: 64,
+      title: "Voted Already",
+      html: 'You have already cast your vote. Wait for the results.',
+      allowOutsideClick: false,
+      timer: 3000,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    }).then(() => {
+      window.location.href = '{{ url_for("main.home") }}';
+    });
+  </script>
+  {% endif %}
+
+  {% if is_admin %}
+  <script>
+    Swal.fire({
+      imageUrl: '{{ url_for("static", filename="favicon.ico") }}',
+      imageWidth: 64,
+      imageHeight: 64,
+      title: 'Admin Access',
+      html: "Admin can't vote.",
+      allowOutsideClick: false,
+      timer: 3000,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    }).then
+      (() => {
+        window.location.href = '{{ url_for("main.home") }}';
+      });
+  </script>
+  {% endif %}
+  <script>
+    function showCameraUnavailable() {
+      document.getElementById('videoSection').classList.add('d-none');
+      document.getElementById('cameraUnavailableSection').classList.remove('d-none');
+    }
+
+    function showVotingSection() {
+      document.getElementById('faceVerification').classList.add('d-none');
+      document.getElementById('votingSection').classList.remove('d-none');
+    }
+
+    // Start video stream
+    const video = document.getElementById('video');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      showCameraUnavailable();
+    } else {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.warn('Camera not available:', err);
+          showCameraUnavailable();
+        });
+    }
+
+    // Skip face verification when camera not available
+    document.getElementById('skipFaceVerification').addEventListener('click', () => {
+      showVotingSection();
+    });
+
+    // Capture image from video
+    document.getElementById('startVerification').addEventListener('click', () => {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const img = document.getElementById('capturedImage');
+      const faceVerificationForm = document.getElementById('faceVerificationForm');
+
+      // Clear previous inputs
+      while (faceVerificationForm.firstChild) {
+        faceVerificationForm.removeChild(faceVerificationForm.firstChild);
+      }
+
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      // Convert canvas image to Blob (JPEG format for smaller size)
+      canvas.toBlob(async function (blob) {
+        const file = new File([blob], "face.jpg", { type: "image/jpeg" });
+
+        // Optional: Preview the captured image
+        const reader = new FileReader();
+        reader.onload = function () {
+          img.src = reader.result;
+          img.style.display = 'block';
+        };
+        reader.readAsDataURL(blob);
+
+        // Append file to form using DataTransfer
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.name = "face_image";
+        fileInput.files = dataTransfer.files;
+        faceVerificationForm.appendChild(fileInput);
+
+        // Stop camera stream
+        const stream = video.srcObject;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+
+        // Show UI change
+        document.getElementById('videoSection').classList.add('d-none');
+        document.getElementById('capturedImageSection').classList.remove('d-none');
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Image Captured!',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      }, 'image/jpeg', 0.8); // 80% quality JPEG compression
+    });
+
+    // Retake capture
+    document.getElementById('retakeCapture').addEventListener('click', () => {
+      const video = document.getElementById('video');
+      const canvas = document.getElementById('canvas');
+      const img = document.getElementById('capturedImage');
+      const faceVerificationForm = document.getElementById('faceVerificationForm');
+
+
+      // Remove hidden input if exists
+      const oldInput = faceVerificationForm.querySelector("input[name='face_image']");
+      if (oldInput) {
+        oldInput.remove();
+      }
+
+      // Clear captured image
+      img.src = '';
+      img.style.display = 'none';
+
+      // Restart camera stream
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          alert("Camera access denied or not supported.");
+          console.error(err);
+        });
+
+      // Show video section and hide captured image section
+      document.getElementById('capturedImageSection').classList.add('d-none');
+      document.getElementById('videoSection').classList.remove('d-none');
+    });
+
+    // Handle form submission
+    document.getElementById('verifyButton').addEventListener('click', (e) => {
+      e.preventDefault();
+      const bsb = Swal.mixin({
+        customClass: {
+          confirmButton: "btn btn-success",
+          cancelButton: "btn btn-danger"
+        },
+        buttonsStyling: false
+      });
+
+      // Show loading alert
+      Swal.fire({
+        title: 'Processing...',
+        text: 'Please wait while we verify your identity.',
+        imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+        imageWidth: 64,
+        imageHeight: 64,
+        imageAlt: 'Smart Voting System Logo',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
+      const formData = new FormData(document.getElementById('faceVerificationForm'));
+
+      fetch("{{ url_for('api.verify_face') }}", {
+        method: "POST",
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          // Hide loading alert
+          Swal.close();
+
+          if (data.success) {
+            Swal.fire({
+              imageUrl: '{{ url_for("static", filename="favicon.ico") }}',
+              imageWidth: 64,
+              imageHeight: 64,
+              title: 'Verification Successful',
+              html: 'Loading voting page...',
+              allowOutsideClick: false,
+              timer: 2000,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+            // Hide the verification form
+            document.getElementById('faceVerification').classList.add('d-none');
+            document.getElementById('votingSection').classList.remove('d-none');
+          } else {
+            bsb.fire({
+              icon: 'error',
+              title: 'Verification Failed',
+              text: data.message
+            });
+          }
+        })
+        .catch(error => {
+          // Hide loading alert
+          Swal.close();
+
+          console.error('Error:', error);
+          bsb.fire({
+            icon: 'error',
+            title: 'Verification Failed',
+            text: 'An error occurred while processing your request.'
+          });
+        });
+    });
+
+    // Voting function
+    function vote(candidateId) {
+      Swal.fire({
+        title: 'Confirm Vote',
+        text: `Are you sure you want to vote for ${candidateId}?`,
+        imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+        imageWidth: 64,
+        imageHeight: 64,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, vote!',
+        cancelButtonText: 'No, cancel'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Show loading alert
+          Swal.fire({
+            title: 'Processing...',
+            text: 'Please wait while we process your vote.',
+            imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+            imageWidth: 64,
+            imageHeight: 64,
+            imageAlt: 'Smart Voting System Logo',
+            allowOutsideClick: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
+          fetch("{{ url_for('api.vote') }}", {
+            method: "POST",
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ candidate_id: candidateId })
+          })
+            .then(response => response.json())
+            .then(data => {
+              // Hide loading alert
+              Swal.close();
+
+              if (data.success) {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Vote Successful',
+                  text: data.message
+                }).then(() => {
+                  window.location.href = '{{ url_for("main.home") }}';
+                });
+              } else {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Vote Failed',
+                  text: data.message
+                });
+              }
+            })
+            .catch(error => {
+              // Hide loading alert
+              Swal.close();
+
+              console.error('Error:', error);
+              bsb.fire({
+                icon: 'error',
+                title: 'Vote Failed',
+                text: 'An error occurred while processing your vote.'
+              });
+            });
+        }
+      });
+    }
+  </script>
+
+
+  {% endblock %}

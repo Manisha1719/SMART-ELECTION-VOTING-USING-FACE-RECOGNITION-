@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Logout - Smart Voting System{% endblock %}
+
+{% block scripts %}
+<script>
+  Swal.fire({
+    icon: 'success',
+    title: 'Logged Out Successfully',
+    html: 'You have been logged out.',
+    allowOutsideClick: false,
+    timer: 2000,
+    didOpen: () => {
+      Swal.showLoading();
+    }
+  });
+  setTimeout(() => {
+    window.location.href = '{{ url_for("main.home") }}';
+  }, 2000);
+</script>
+{% endblock %}

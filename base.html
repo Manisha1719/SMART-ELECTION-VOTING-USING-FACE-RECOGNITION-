@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+  <title>{% block title %}Smart Voting System{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap"
+    rel="stylesheet">
+  <link href="https://fonts.cdnfonts.com/css/bumbbled" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    body {
+      font-family: 'Open Sans', 'Roboto', 'Bumbbled', sans-serif;
+      min-height: 100vh;
+      background-image: linear-gradient(to bottom right, orange 0%, #c8b490 50%, green 100%);
+      overflow-x: hidden;
+    }
+
+    .blur {
+      backdrop-filter: blur(10px);
+      background-color: rgb(255 255 255 / 20%);
+    }
+
+    .blur:hover {
+      background-color: rgb(255 255 255 / 30%);
+    }
+
+    a:hover img {
+      transform: scale(1.05);
+      transition: transform 0.2s ease;
+    }
+
+.typewriter-text {
+  display: inline-block;
+  position: relative;
+  font-size: inherit;
+  color: inherit;
+  overflow: hidden;
+  white-space: nowrap;
+  /* Remove border-right (cursor) */
+  width: 0;
+}
+
+.typewriter-text.animate {
+  animation: typing 2s steps(40, end);
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+  </style>
+  {% block styles %}
+  {% endblock %}
+</head>
+
+<body class="d-flex flex-column">
+
+  <!-- Header -->
+  <div class="container-fluid py-2 h-25 blur position-sticky top-0 start-0 end-0 shadow-sm" style="z-index: 1000;">
+    <div class="row p-md-2 align-items-center">
+      <div class="col-md-7 col-12 text-start ">
+        <a href="/" class="text-decoration-none d-flex flex-row align-items-center gap-3 text-black">
+          <img src="{{ url_for('static', filename='favicon.ico') }}" alt="Logo" class="bg-transparent"
+            style="max-height: 40px;">
+          <div>
+            <h1 class="m-0 fw-bold">Smart Voting System</h1>
+            <small class="d-md-none" style="font-family: 'Bumbbled';">
+              <span id="typewriter" class="typewriter-text"></span>
+            </small>
+          </div>
+        </a>
+      </div>
+      <div class="col-md-5 col-12 text-end d-none d-md-block align-self-center" style="font-family: 'Bumbbled';">
+        <p class="m-0 fs-5">
+          <span id="typewriter-desktop" class="typewriter-text"></span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Content -->
+  <div class="flex-grow-1 d-flex flex-column h-100 align-items-center justify-content-center">
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  {% block scripts %}
+  {% endblock %}
+  <script>
+    const phrases = [
+      { text: "Secure.", color: "#f97c00" },
+      { text: "Efficient.", color: "#167d0c" },
+      { text: "Transparent.", color: "#ffffff" },
+    ];
+
+    const mobileEl = document.getElementById("typewriter");
+    const desktopEl = document.getElementById("typewriter-desktop");
+
+    let index = 0;
+
+    function showNextPhrase(el) {
+      const phrase = phrases[index];
+      el.textContent = phrase.text;
+      el.style.color = phrase.color;
+      el.classList.add("animate");
+
+      setTimeout(() => {
+        el.classList.remove("animate");
+        index = (index + 1) % phrases.length;
+      }, 2000); // duration of typing animation
+    }
+
+    // Start the loop
+    setInterval(() => {
+      showNextPhrase(mobileEl);
+      showNextPhrase(desktopEl);
+    }, 3000); // change every 3 seconds
+
+    // Initialize first phrase
+    showNextPhrase(mobileEl);
+    showNextPhrase(desktopEl);
+  </script>
+</body>
+
+</html>

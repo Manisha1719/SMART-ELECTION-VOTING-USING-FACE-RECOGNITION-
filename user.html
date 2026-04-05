@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}User - Smart Voting System{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid p-4 h-100">
+  <!-- Centered Row -->
+  <div class="row justify-content-center align-items-center m-0">
+    <div class="col-12 col-sm-7 col-md-5 col-lg-4 col-xl-3 p-0">
+      <!-- Admin Card -->
+      <div class="blur rounded-4 shadow-lg p-4">
+        <!-- Header -->
+        <div class="text-center m-4 mt-0">
+          <h2 class="fw-bold">Dashboard</h2>
+        </div>
+        <!-- greet user -->
+        <div class="mb-4">
+          <h5 class="fw-semibold">Welcome, {{ name }}!</h5>
+        </div>
+        <div class="blur card shadow-sm p-0">
+          <div class="card-header p-3">
+            <h3 class="fw-semibold m-0">Voting Status</h3>
+          </div>
+          <div class="card-body text-center">
+            <div class="card-title">
+              <h5 class="fw-semibold">
+                <span id="votingStatus"
+                  class="text-{{ 'success' if voting_status == 'Running' else 'danger' if voting_status == 'Stopped' else 'primary' }} fw-bold">
+                  {{ voting_status }}
+                </span>
+              </h5>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="list-group rounded-0">
+            {% if voting_status == 'Running' %}
+            {% if user_status %}
+            <button type="button" class="list-group-item list-group-item-action py-3 bg-success-subtle " disabled>
+              <i class="bi bi-check-circle-fill me-2"></i> Already Voted
+            </button>
+            {% else %}
+            <button type="button" class="list-group-item list-group-item-action py-3 bg-primary"
+              onclick="window.location.href='/vote'">
+              <i class="bi bi-pencil-fill me-2"></i> Vote
+            </button>
+            {% endif %}
+            {% elif voting_status == 'Stopped' %}
+            <button type="button" class="list-group-item list-group-item-action py-3 bg-info-subtle"
+              onclick="window.location.href='/results'">
+              <i class="bi bi-bar-chart-line-fill me-2"></i> View Results
+            </button>
+            {% endif %}
+            <button type="button" class="list-group-item list-group-item-action py-3 text-danger" onclick="logout()">
+              <i class="bi bi-box-arrow-right me-2"></i> Logout
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function logout() {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, logout!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "{{ url_for('main.logout') }}";
+      }
+    });
+  }
+</script>
+{% endblock %}

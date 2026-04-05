@@ -1,0 +1,370 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Smart Voting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4 h-100">
+  <!-- Centered Row -->
+  <div class="row justify-content-center align-items-center m-0">
+    <div class="col-12 col-sm-8 col-md-6 col-lg-5 col-xl-4 p-0">
+      <div class="text-center mb-3 text-white">
+        <h1 class="fw-bold" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.45);">Smart Voting System</h1>
+        <p class="mb-0">Secure, transparent, real-time election dashboard</p>
+      </div>
+      <!-- login form -->
+      <form method="post" class="p-4 rounded-4 shadow-lg text-dark blur" id="loginForm">
+        <h2 class="text-center mb-4 fw-bold">Login</h2>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="bi bi-person-vcard-fill"></i></span>
+          <div class="form-floating">
+            <input type="text" class="form-control" id="voter_id" name="voter_id" placeholder="Voter ID" required>
+            <label for="voter_id">Voter ID</label>
+          </div>
+        </div>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+          <div class="form-floating">
+            <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
+            <label for="password">Password</label>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-lg btn-primary w-100">Login</button>
+        <div class="text-center mt-3">
+          <small>Don't have an account?
+            <button type="button" class="btn btn-link p-0" onclick="showRegisterForm()">Register</button>
+          </small>
+        </div>
+      </form>
+
+
+      <!-- register form -->
+      <form method="post" class="p-4 rounded-4 shadow-lg text-dark blur d-none" id="registerForm">
+        <!-- Register Form Section -->
+        <div id="registerFormSection">
+          <h2 class="text-center mb-4 fw-bold">Register</h2>
+          <!-- Name -->
+          <div class="input-group mb-3">
+            <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+            <div class="form-floating">
+              <input type="text" class="form-control" id="new_name" name="name" placeholder="Full Name" required>
+              <label for="new_name">Full Name</label>
+            </div>
+          </div>
+          <!-- Voter ID -->
+          <div class="input-group mb-3">
+            <span class="input-group-text"><i class="bi bi-person-vcard-fill"></i></span>
+            <div class="form-floating">
+              <input type="text" class="form-control" id="new_voter_id" name="voter_id" placeholder="Voter ID" required>
+              <label for="new_voter_id">Voter ID</label>
+            </div>
+          </div>
+          <!-- Password -->
+          <div class="input-group mb-3">
+            <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+            <div class="form-floating">
+              <input type="password" class="form-control" id="new_password" name="password" placeholder="Password"
+                required>
+              <label for="new_password">Password</label>
+            </div>
+          </div>
+          <button type="button" class="btn btn-lg btn-primary w-100" onclick="showFaceVerification()">Next</button>
+          <div class="text-center mt-3">
+            <small>Already have an account?
+              <button type="button" class="btn btn-link p-0" onclick="showLoginForm()">Login</button>
+            </small>
+          </div>
+        </div>
+        <!-- Face Verification Section -->
+        <div id="faceVerification" class="d-none">
+          <h3 class="text-center mb-4 fw-bold">Face Verification</h3>
+          <div id="videoSection" class="text-center">
+            <p class="text-center">Please allow camera access to verify your identity.</p>
+
+            <video id="video" width="100%" height="auto" autoplay></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+            <button type="button" class="btn btn-lg btn-primary w-100 mt-3" id="startVerification">Capture</button>
+          </div>
+          <div class="d-none" id="capturedImageSection">
+            <button type="button" class="btn btn-primary w-100 mt-2" id="retakeCapture">Retake Capture</button>
+            <!-- Optional: Show captured image -->
+            <div class="mt-3 text-center">
+              <img id="capturedImage" alt="Captured Face" class="img-fluid">
+            </div>
+            <button type="submit" class="btn btn-lg btn-success w-100 mt-2">Register</button>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Toggle forms
+  function showRegisterForm() {
+    document.getElementById('loginForm').reset();
+    document.getElementById('registerForm').classList.remove('d-none');
+    document.getElementById('loginForm').classList.add('d-none');
+  }
+
+  function showLoginForm() {
+    document.getElementById('registerForm').reset();
+    document.getElementById('loginForm').classList.remove('d-none');
+    document.getElementById('registerForm').classList.add('d-none');
+  }
+
+  function showFaceVerification() {
+    document.getElementById('registerFormSection').classList.add('d-none');
+    document.getElementById('faceVerification').classList.remove('d-none');
+
+    // Start video stream
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert("Camera access denied or not supported.");
+        console.error(err);
+      });
+  }
+
+  // Capture image from video
+  document.getElementById('startVerification').addEventListener('click', () => {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const img = document.getElementById('capturedImage');
+
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(async function (blob) {
+      const file = new File([blob], "face.jpg", { type: "image/jpeg" });
+
+      // Preview the captured image
+      const reader = new FileReader();
+      reader.onload = function () {
+        img.src = reader.result;
+        img.style.display = 'block';
+      };
+      reader.readAsDataURL(blob);
+
+      // Stop camera stream
+      const stream = video.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+
+      // Remove previous inputs
+      const registerForm = document.getElementById('registerForm');
+      const oldInput = registerForm.querySelector("input[name='face_image']");
+      if (oldInput) registerForm.removeChild(oldInput);
+
+      // Append file to form using DataTransfer
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      const fileInput = document.createElement("input");
+      fileInput.style.display = "none"; // Hide the input
+      fileInput.type = "file";
+      fileInput.name = "face_image";
+      fileInput.files = dataTransfer.files;
+      registerForm.appendChild(fileInput);
+
+      // UI changes
+      document.getElementById('videoSection').classList.add('d-none');
+      document.getElementById('capturedImageSection').classList.remove('d-none');
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Image Captured!',
+        timer: 1500,
+        showConfirmButton: false
+      });
+    }, 'image/jpeg', 0.8); // 80% quality JPEG compression
+
+    // Stop camera stream
+    const stream = video.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    document.getElementById('videoSection').classList.add('d-none');
+    document.getElementById('capturedImageSection').classList.remove('d-none');
+    Swal.fire({
+      icon: 'success',
+      title: 'Image Captured!',
+      timer: 1500,
+      showConfirmButton: false
+    });
+  });
+
+  // Retake capture
+  document.getElementById('retakeCapture').addEventListener('click', () => {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const img = document.getElementById('capturedImage');
+    const registerForm = document.getElementById('registerForm');
+
+    // Remove hidden input if exists
+    const oldInput = registerForm.querySelector("input[name='face_image']");
+    if (oldInput) {
+      oldInput.remove();
+    }
+
+    // Clear captured image
+    img.src = '';
+    img.style.display = 'none';
+
+    // Restart camera stream
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        alert("Camera access denied or not supported.");
+        console.error(err);
+      });
+
+    // Show video section and hide captured image section
+    document.getElementById('capturedImageSection').classList.add('d-none');
+    document.getElementById('videoSection').classList.remove('d-none');
+  });
+  // Handle form submission
+  document.getElementById('registerForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    const bsb = Swal.mixin({
+      customClass: {
+        confirmButton: "btn btn-success",
+        cancelButton: "btn btn-danger"
+      },
+      buttonsStyling: false
+    });
+
+    // Show loading alert
+    Swal.fire({
+      title: 'Processing...',
+      text: 'Please wait while we register you.',
+      imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+      imageWidth: 64,
+      imageHeight: 64,
+      imageAlt: 'Smart Voting System Logo',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    const formData = new FormData(e.target);
+
+    fetch("{{ url_for('api.register') }}", {
+      method: "POST",
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Hide loading alert
+        Swal.close();
+
+        if (data.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Registration Successful',
+            html: 'Redirecting to login page...',
+            allowOutsideClick: false,
+            timer: 2000,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+          setTimeout(() => {
+            window.location.href = "{{ url_for('main.home') }}";
+          }, 2000);
+        } else {
+          bsb.fire({
+            icon: 'error',
+            title: 'Registration Failed',
+            text: data.message
+          });
+        }
+      })
+      .catch(error => {
+        // Hide loading alert
+        Swal.close();
+
+        console.error('Error:', error);
+        bsb.fire({
+          icon: 'error',
+          title: 'Registration Failed',
+          text: 'An error occurred while processing your request.'
+        });
+      });
+  });
+
+  // Handle login form submission
+  document.getElementById('loginForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Show loading alert
+    Swal.fire({
+      title: 'Logging in...',
+      text: 'Please wait while we log you in.',
+      imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+      imageWidth: 64,
+      imageHeight: 64,
+      imageAlt: 'Smart Voting System Logo',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    const formData = new FormData(e.target);
+
+    fetch("{{ url_for('api.login') }}", {
+      method: "POST",
+      body: formData
+    })
+      .then(response => response.json())
+      .then(data => {
+        // Hide loading alert
+        Swal.close();
+
+        if (data.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Login Successful',
+            html: 'Redirecting to dashboard...',
+            allowOutsideClick: false,
+            timer: 2000,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+          setTimeout(() => {
+            window.location.href = "{{ url_for('main.home') }}";
+          }, 2000);
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Login Failed',
+            text: data.message
+          });
+        }
+      })
+      .catch(error => {
+        // Hide loading alert
+        Swal.close();
+
+        console.error('Error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: 'An error occurred while processing your request.'
+        });
+      });
+  })
+
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Smart Voting System{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4 h-100">
+  <!-- Centered Row -->
+  <div class="row justify-content-center align-items-center m-0">
+    <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5 p-0">
+      <div class="blur p-4 rounded-4 shadow-sm">
+        <h3 class="text-center mb-4 fw-bold">Results</h3>
+
+        {% if voting_status == "Not Started" %}
+        <p class="text-center text-muted fs-5">Voting has not started yet.</p>
+        {% elif voting_status == "Running" %}
+        <p class="text-center text-warning fs-5">Voting is currently in progress. Return after voting stops.</p>
+        {% else %}
+        <div class="table-responsive">
+          <table class="table table-striped table-hover align-middle mb-0">
+            <thead class="">
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Logo</th>
+                <th scope="col">Candidate</th>
+                <th scope="col">Percentage</th>
+                <th scope="col">Votes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ix, candidate in results.results %}
+              <tr class="{% if candidate.votes == results.max_votes %} table-success {% endif %}"
+                style="transition: all 0.3s ease;">
+                <td>{{ ix }}</td>
+                <td>
+                  <img src="{{ url_for('static', filename=candidate.logo) }}" alt="{{ candidate.name }}"
+                    class="img-fluid rounded-circle" style="width: 40px; height: 40px; object-fit: cover;">
+                </td>
+                <td>{{ candidate._id }}</td>
+                <td>{{ candidate.percentage }}%</td>
+                <td>{{ candidate.votes }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot class="">
+              <tr>
+                <td colspan="4" class="text-end fw-bold">Total Votes</td>
+                <td>{{ results.total_votes }}</td>
+              </tr>
+            </tfoot>
+            <caption class="text-center mt-2">
+              Won Candidate: <strong>
+                {% for ix, candidate in results.results %}
+                {% if candidate.votes == results.max_votes %}
+                {{ candidate._id }}
+                {% endif %}
+                {% endfor %}
+              </strong>
+            </caption>
+          </table>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

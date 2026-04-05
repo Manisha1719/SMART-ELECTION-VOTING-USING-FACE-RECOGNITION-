@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Smart Voting System{% endblock %}
+
+{% block content %}
+<style>
+  .candidate-card { border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; }
+  .candidate-card .card-header { background: rgba(255,255,255,0.35); }
+  .voting-chip { font-weight: 700; }
+  .status-dot { width: 12px; height: 12px; border-radius: 100%; display: inline-block; margin-right: 6px; }
+  .status-running { background: #28a745; }
+  .status-stopped { background: #dc3545; }
+  .status-not-started { background: #0d6efd; }
+</style>
+<!-- Full-width container with no padding -->
+<div class="container-fluid p-4 h-100">
+  <!-- Centered Row -->
+  <div class="row justify-content-center align-items-center m-0">
+    <div class="col-12 col-md-8 p-0">
+      <!-- Admin Card -->
+      <div class="blur rounded-4 shadow-lg p-4">
+        <!-- Header -->
+        <div class="text-center m-4 mt-0">
+          <h2 class="fw-bold">Admin Dashboard</h2>
+        </div>
+
+        <!-- Candidate Management -->
+        <div class="row">
+          <div class="col d-flex justify-content-center align-items-center mb-4">
+            <div class="blur card w-100 shadow-sm">
+
+
+
+
+              <div class="card-header p-3">
+                <h3 class="fw-semibold m-0">Candidate Management</h3>
+              </div>
+              <div class="card-body">
+                <div class="row row-cols-2 row-cols-sm-2 row-cols-md-2 row-cols-lg-3 row-cols-xl-4 row-cols-xxl-5 g-4">
+                  {% for candidate in candidates %}
+                  <div class="col">
+                    <div class="card h-100 d-flex flex-column">
+                      <div class="card-header text-center d-inline-block px-3 py-2" style="min-width: max-content;">
+                        <h5 class="card-title m-0">{{ candidate._id }}</h5>
+                      </div>
+                      <div class="d-flex align-items-center justify-content-center flex-grow-1 p-2">
+                        <img src="{{ url_for('api.logo', file=candidate.logo) }}" alt="{{ candidate._id }}"
+                          class="img-fluid" style="max-height: 100px;">
+                      </div>
+                      <div class="card-footer d-flex align-items-center justify-content-end p-0">
+                        <button class="btn w-100 h-100 d-flex align-items-center justify-content-center"
+                          style="border-radius: 0; background-color: #dba8ad;"
+                          onclick="deleteCandidate('{{ candidate.logo }}')">
+                          <i class="bi bi-trash-fill"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  {% endfor %}
+
+                  <!-- Add Candidate Button Card -->
+                  <div class="col">
+                    <div class="card h-100 clickable-card" onclick="addCandidate()" style="cursor: pointer;">
+                      <div class="card-body d-flex align-items-center justify-content-center">
+                        <i class="bi bi-plus-circle-fill text-success" style="font-size: 2rem;"></i>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Voting Management -->
+        <div class="row ">
+          <div class="col d-flex align-items-center  ">
+            <div class="row m-0 p-0 w-100">
+              <div class="blur card shadow-sm p-0 col-12 col-sm-7 col-md-8 col-lg-7 col-xl-6 col-xxl-4">
+
+
+
+                <div class="card-header p-3">
+                  <h3 class="fw-semibold m-0">Voting Management</h3>
+                </div>
+                <div class="card-body text-center">
+                  <div class="card-title">
+                    <h5 class="fw-semibold">Voting Status:
+                      <span id="votingStatus"
+                        class="text-{{ 'success' if voting_status == 'Running' else 'danger' if voting_status == 'Stopped' else 'primary' }} fw-bold">
+                        {{ voting_status }}
+                      </span>
+                    </h5>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="list-group rounded-0">
+                  {% if voting_status == 'Not Started' %}
+                  <button type="button" class="list-group-item list-group-item-action py-3 bg-success-subtle"
+                    onclick="startVoting()">
+                    <i class="bi bi-play-circle-fill me-2"></i> Start Voting
+                  </button>
+                  {% elif voting_status == 'Running' %}
+                  <button type="button" class="list-group-item list-group-item-action py-3 bg-danger"
+                    onclick="stopVoting()">
+                    <i class="bi bi-stop-circle-fill me-2"></i> Stop Voting
+                  </button>
+                  {% elif voting_status == 'Stopped' %}
+                  <button type="button" class="list-group-item list-group-item-action py-3 bg-warning-subtle"
+                    onclick="resetVoting()">
+                    <i class="bi bi-arrow-clockwise me-2"></i> Reset Voting
+                  </button>
+                  <button type="button" class="list-group-item list-group-item-action py-3 bg-info-subtle"
+                    onclick="viewResults()">
+                    <i class="bi bi-bar-chart-line-fill me-2"></i> View Results
+                  </button>
+                  {% endif %}
+                  <button type="button" class="list-group-item list-group-item-action py-3 text-danger"
+                    onclick="logout()">
+                    <i class="bi bi-box-arrow-right me-2"></i> Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function deleteCandidate(candidateLogo) {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, delete it!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+
+        fetch('{{ url_for("api.delete_candidate") }}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ logo: candidateLogo })
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Deleted!",
+                text: "The candidate has been deleted.",
+                timer: 2000,
+                showConfirmButton: false
+              });
+              setTimeout(() => {
+                location.reload(); // Reload after 2 seconds
+              }, 2000);
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: data.message || "Could not delete candidate.",
+                timer: 3000,
+                showConfirmButton: false
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error deleting candidate:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Something went wrong!",
+              timer: 3000,
+              showConfirmButton: false
+            });
+          });
+      }
+    });
+  }
+
+  function addCandidate() {
+    Swal.fire({
+      title: 'Add New Candidate',
+      html: `
+          <div class="text-start">
+            <label for="swal-input1" class="form-label">Candidate Name</label>
+            <input id="swal-input1" class="form-control text-uppercase" placeholder="Enter name">
+
+            <label for="swal-input2" class="form-label mt-3">Logo Image</label>
+            <input id="swal-input2" type="file" accept="image/*" class="form-control">
+          </div>
+        `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Add Candidate',
+      confirmButtonColor: '#28a745',
+      cancelButtonText: 'Cancel',
+      preConfirm: () => {
+        const name = document.getElementById('swal-input1').value.trim();
+        const fileInput = document.getElementById('swal-input2');
+        const file = fileInput.files[0];
+
+        if (!name || !file) {
+          Swal.showValidationMessage('Please fill in both fields');
+          return false;
+        }
+
+        return { name, file };
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const formData = new FormData();
+        formData.append('name', result.value.name);
+        formData.append('logo', result.value.file);
+
+        // Show loading spinner
+        Swal.fire({
+          title: 'Processing...',
+          text: 'Uploading candidate data...',
+          imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+          imageWidth: 64,
+          imageHeight: 64,
+          timerProgressBar: true,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        fetch("{{ url_for('api.add_candidate') }}", {
+          method: "POST",
+          body: formData
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Added!',
+                text: 'Candidate has been added successfully.',
+                timer: 2000,
+                showConfirmButton: false
+              });
+              setTimeout(() => {
+                location.reload(); // Reload after 2 seconds
+              }, 2000);
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Could not add candidate.'
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error adding candidate:", err);
+            Swal.fire({
+              icon: 'error',
+              title: 'Oops...',
+              text: 'Something went wrong!'
+            });
+          });
+      }
+    });
+  }
+
+  function logout() {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You will be logged out!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, logout!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "{{ url_for('main.logout') }}";
+      }
+    });
+  }
+
+  function startVoting() {
+    Swal.fire({
+      title: "Start Voting",
+      text: "Are you sure you want to start the voting process?",
+      imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+      imageWidth: 64,
+      imageHeight: 64,
+      showCancelButton: true,
+      confirmButtonColor: "#28a745",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, start voting!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch('{{ url_for("api.start_voting") }}', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Voting Started!",
+                text: "The voting process has been started.",
+                timer: 2000,
+                showConfirmButton: false
+              });
+              setTimeout(() => {
+                location.reload(); // Reload after 2 seconds
+              }, 2000);
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: data.message || "Could not start voting.",
+                timer: 3000,
+                showConfirmButton: false
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error starting voting:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Something went wrong!",
+              timer: 3000,
+              showConfirmButton: false
+            });
+          });
+      }
+    });
+  }
+  function stopVoting() {
+    Swal.fire({
+      title: "End Voting",
+      text: "Are you sure you want to end the voting process?",
+      imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+      imageWidth: 64,
+      imageHeight: 64,
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, end voting!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch('{{ url_for("api.stop_voting") }}', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Voting Stopped!",
+                text: "The voting process has been stopped.",
+                timer: 2000,
+                showConfirmButton: false
+              });
+              setTimeout(() => {
+                location.reload(); // Reload after 2 seconds
+              }, 2000);
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: data.message || "Could not end voting.",
+                timer: 3000,
+                showConfirmButton: false
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error ending voting:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Something went wrong!",
+              timer: 3000,
+              showConfirmButton: false
+            });
+          });
+      }
+    });
+  }
+  function resetVoting() {
+    Swal.fire({
+      title: "Reset Voting",
+      text: "Are you sure you want to reset the voting process?",
+      imageUrl: "{{ url_for('static', filename='favicon.ico') }}",
+      imageWidth: 64,
+      imageHeight: 64,
+      showCancelButton: true,
+      confirmButtonColor: "#ffc107",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, reset voting!",
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch('{{ url_for("api.reset_voting") }}', { method: 'POST' })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              Swal.fire({
+                icon: "success",
+                title: "Voting Reset!",
+                text: "The voting process has been reset.",
+                timer: 2000,
+                showConfirmButton: false
+              });
+              setTimeout(() => {
+                location.reload(); // Reload after 2 seconds
+              }, 2000);
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: data.message || "Could not reset voting.",
+                timer: 3000,
+                showConfirmButton: false
+              });
+            }
+          })
+          .catch(err => {
+            console.error("Error resetting voting:", err);
+            Swal.fire({
+              icon: "error",
+              title: "Oops...",
+              text: "Something went wrong!",
+              timer: 3000,
+              showConfirmButton: false
+            });
+          });
+      }
+    });
+  }
+  function viewResults() {
+
+
+    window.location.href = "{{ url_for('main.results') }}";
+  }
+
+</script>
+{% endblock %}
